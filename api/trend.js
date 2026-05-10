@@ -1,8 +1,10 @@
-// Standard serverless function — longer timeout than edge runtime
+export const config = {
+  maxDuration: 120,
+};
+
 const SITE_PASSWORD = process.env.SITE_PASSWORD;
 
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Site-Password');
@@ -20,7 +22,6 @@ export default async function handler(req, res) {
     const perplexityKey = process.env.PERPLEXITY_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    // Step 1 — Perplexity Agent API
     const searchInput = `Research what is currently being discussed about: "${topic}"${area ? ` in the context of ${area}` : ''}.
 
 Find:
@@ -31,22 +32,33 @@ Find:
 
 Return a structured summary with the most interesting angle, key facts, and source URLs.`;
 
-    const perplexityResponse = await fetch('https://api.perplexity.ai/v1/agent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${perplexityKey}`,
-      },
-      body: JSON.stringify({
-        preset: 'pro-search',
-        input: searchInput,
-      }),
-      signal: AbortSignal.timeout(45000), // 45 second timeout
-    });
+    // Step 1 — Perplexity with 110s timeout and proper abort handling
+    console.time('perplexity');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 110000);
+
+    let perplexityResponse;
+    try {
+      perplexityResponse = await fetch('https://api.perplexity.ai/v1/agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${perplexityKey}`,
+        },
+        body: JSON.stringify({
+          preset: 'fast-search',
+          input: searchInput,
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+    console.timeEnd('perplexity');
 
     if (!perplexityResponse.ok) {
       const errText = await perplexityResponse.text();
-      throw new Error(`Perplexity error ${perplexityResponse.status}: ${errText.slice(0, 200)}`);
+      throw new Error(`Perplexity error ${perplexityResponse.status}: ${errText.slice(0, 300)}`);
     }
 
     const perplexityData = await perplexityResponse.json();
@@ -73,6 +85,7 @@ Return a structured summary with the most interesting angle, key facts, and sour
     if (!researchSummary) throw new Error('No research content returned. Please try again.');
 
     // Step 2 — Claude generates content
+    console.time('claude');
     const isCard = outputType === 'card';
 
     const contentPrompt = isCard
@@ -129,6 +142,12 @@ Return ONLY valid JSON:
         messages: [{ role: 'user', content: contentPrompt }],
       }),
     });
+    console.timeEnd('claude');
+
+    if (!claudeResponse.ok) {
+      const errText = await claudeResponse.text();
+      throw new Error(`Claude error ${claudeResponse.status}: ${errText.slice(0, 300)}`);
+    }
 
     const claudeData = await claudeResponse.json();
     const claudeText = claudeData.content
