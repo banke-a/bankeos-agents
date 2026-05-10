@@ -1,11 +1,12 @@
 import { useState } from "react";
 
 const AREAS = [
-  "African business and SME markets",
   "AI implementation for non-technical businesses",
-  "Founder and entrepreneurship",
   "Data and analytics for growing businesses",
   "Digital transformation",
+  "Founder and entrepreneurship",
+  "African business and SME markets",
+  "Global SME markets",
 ];
 
 const TOPICS = [
@@ -27,6 +28,7 @@ const STAGES = {
 
 export default function TrendAgent({ password }) {
   const [topic, setTopic] = useState("");
+  const [context, setContext] = useState("");
   const [area, setArea] = useState("");
   const [outputType, setOutputType] = useState("linkedin");
   const [stage, setStage] = useState("idle");
@@ -54,7 +56,7 @@ export default function TrendAgent({ password }) {
       const researchRes = await fetch("/api/research", {
         method: "POST",
         headers,
-        body: JSON.stringify({ topic, area }),
+        body: JSON.stringify({ topic, area, context }),
       });
 
       if (researchRes.status === 401) throw new Error("Unauthorised");
@@ -78,6 +80,7 @@ export default function TrendAgent({ password }) {
         body: JSON.stringify({
           researchSummary: researchData.summary,
           outputType,
+          context: researchData.context || context,
         }),
       });
 
@@ -149,6 +152,17 @@ export default function TrendAgent({ password }) {
               <option value="">General</option>
               {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={s.label}>Additional context (optional)</label>
+            <textarea
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              placeholder="e.g. Post 1 of the AI Implementation Gap series. Frame for non-technical business owners, not developers. Connect to Business Foundation Audit where relevant. No personal client stories."
+              rows={3}
+              style={{ width: "100%", border: "1px solid #e0d8cc", background: "#faf8f4", padding: "12px 16px", fontSize: 13, fontFamily: "monospace", color: "#1a1a1a", resize: "vertical", outline: "none", boxSizing: "border-box", lineHeight: 1.6 }}
+            />
           </div>
 
           <div style={{ marginBottom: 24 }}>

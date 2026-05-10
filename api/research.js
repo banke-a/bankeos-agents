@@ -18,10 +18,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { topic, area } = req.body;
+    const { topic, area, context } = req.body;
     const perplexityKey = process.env.PERPLEXITY_API_KEY;
 
-    const searchInput = `Research what is currently being discussed about: "${topic}"${area ? ` in the context of ${area}` : ''}.
+    const searchInput = `Research what is currently being discussed about: "${topic}"${area ? ` in the context of ${area}` : ''}.${context ? `
+
+Additional context to guide the research: ${context}` : ''}
 
 Find:
 1. Recent news, data, or developments (last 30 days where possible)
@@ -84,6 +86,7 @@ Return a structured summary with the most interesting angle, key facts, and sour
     return res.status(200).json({
       summary: researchSummary,
       sources: sources.slice(0, 3),
+      context: context || '',
     });
 
   } catch (err) {

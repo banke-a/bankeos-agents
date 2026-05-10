@@ -37,7 +37,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { researchSummary, outputType } = req.body;
+    const { researchSummary, outputType, context } = req.body;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
     const isCard = outputType === 'card';
@@ -48,11 +48,11 @@ export default async function handler(req, res) {
 RESEARCH:
 ${researchSummary.slice(0, 3000)}
 
-ABOUT BANKE: AI Implementation Consultant and founder. 20 years in quantitative risk at tier-1 banks. Bi-continental Lagos and London. Consulting is global; platforms focus on African SMEs.
+ABOUT BANKE: AI Implementation Consultant and founder. 20 years in quantitative risk at tier-1 banks including Barclays, Deutsche Bank, BNP Paribas, and Citigroup. Global consulting practice working with businesses on AI implementation and operational foundations. Also building platforms for African SME markets. Based between London and Lagos.
 
 TARGET AUDIENCE: Non-technical business owners who know they need to act but cannot build the systems themselves.
 
-${VOICE_RULES}
+${context ? `ADDITIONAL CONTEXT FROM USER: ${context}\n\n` : ""}${VOICE_RULES}
 
 ${FACT_RULES}
 
@@ -75,11 +75,11 @@ Return ONLY valid JSON — no markdown, no preamble:
 RESEARCH:
 ${researchSummary.slice(0, 3000)}
 
-ABOUT BANKE: AI Implementation Consultant and founder. 20 years in quantitative risk at tier-1 banks. Bi-continental Lagos and London. Consulting is global; platforms focus on African SMEs.
+ABOUT BANKE: AI Implementation Consultant and founder. 20 years in quantitative risk at tier-1 banks including Barclays, Deutsche Bank, BNP Paribas, and Citigroup. Global consulting practice working with businesses on AI implementation and operational foundations. Also building platforms for African SME markets. Based between London and Lagos.
 
 TARGET AUDIENCE: Non-technical business owners who know they need to act but cannot build the systems themselves.
 
-${VOICE_RULES}
+${context ? `ADDITIONAL CONTEXT FROM USER: ${context}\n\n` : ""}${VOICE_RULES}
 
 ${FACT_RULES}
 

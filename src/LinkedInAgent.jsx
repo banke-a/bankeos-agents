@@ -5,7 +5,7 @@ const SYSTEM_PROMPT = `You are a content agent for Banke Ajayi's personal brand.
 
 ABOUT BANKE:
 - AI Implementation Consultant, founder, builder. 20 years in quantitative risk at Barclays, Deutsche Bank, BNP Paribas, Citigroup.
-- Bi-continental: Lagos and London. Building for African SMEs and global consulting clients.
+- Global consulting practice on AI implementation and operational foundations. Based between London and Lagos. Also building platforms specifically for African SME markets.
 - Platforms: CommandHQ, BankeOS, Find A Biz Africa, YouSabiSell, BizTraka, Ahjayee Consulting.
 - Author of "No One Cares About Dashboards". Published SSRN white paper on Africa's trust infrastructure.
 - Target audience: the non-technical business owner who knows they need to be doing something but cannot build the systems themselves.
@@ -88,8 +88,12 @@ export default function LinkedInAgent({ password }) {
         </div>
         <div style={{ marginBottom:20 }}>
           <label style={s.label}>Specific angle or opinion (optional)</label>
-          <textarea value={angle} onChange={(e) => setAngle(e.target.value)} placeholder="e.g. Nobody documented the process the AI is supposed to replace" rows={2} style={s.input} />
+          <textarea value={angle} onChange={(e) => setAngle(e.target.value)} placeholder="Add your real observation or say 'no personal story — use general observations only'. The agent cannot invent experiences you have not had." rows={2} style={s.input} />
         </div>
+        <div style={{ marginBottom: 4, fontFamily: "monospace", fontSize: 10, color: "#b08000", letterSpacing: "0.05em" }}>
+          If no real experience exists, write "no personal story" — the agent will use general observations instead of inventing one.
+        </div>
+
         <div style={{ marginBottom:24 }}>
           <label style={s.label}>Content pillar (optional)</label>
           <select value={pillar} onChange={(e) => setPillar(e.target.value)}
