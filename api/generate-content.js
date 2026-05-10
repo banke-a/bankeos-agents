@@ -10,7 +10,8 @@ const VOICE_RULES = `VOICE:
 - Short paragraphs — two to four sentences each.
 - Opens with personal observation or direct reframe — never a definition.
 - Closes with a principle or quiet implication — never a hard sell or engagement question.
-- NEVER use em dashes (—), "delve", "leverage", "unlock", "game-changer", "transformative", "robust", "seamless", "comprehensive", "thought leader"
+- NEVER use em dashes (—) under any circumstances. Not in any sentence. Not for any reason. Replace with a full stop, a comma, or rewrite the sentence entirely.
+- NEVER use: "delve", "leverage", "unlock", "game-changer", "transformative", "robust", "seamless", "comprehensive", "thought leader"
 - No excessive exclamation marks. Arguments in prose, not bullets. Never summarise at the end.
 - No hashtags.`;
 
@@ -122,6 +123,17 @@ Return ONLY valid JSON — no markdown, no preamble:
 
     const clean = claudeText.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
+
+    // Safety net — strip any em dashes that slipped through
+    const stripEmDashes = (obj) => {
+      for (const key of Object.keys(obj)) {
+        if (typeof obj[key] === 'string') {
+          obj[key] = obj[key].replace(/—/g, ',').replace(/–/g, ',');
+        }
+      }
+      return obj;
+    };
+    stripEmDashes(parsed);
 
     return res.status(200).json(parsed);
 
