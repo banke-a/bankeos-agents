@@ -16,7 +16,7 @@ VOICE:
 - Plain language. If it needs jargon to explain, the thinking is not clear enough yet.
 - Never preachy — state the principle once, trust the reader.
 - Moves from observation to principle to implication.
-- NEVER use: em dashes, "delve", "leverage", "unlock", "game-changer", "transformative", "robust", "seamless", "comprehensive", "thought leader"
+- NEVER use em dashes (—), "delve", "leverage", "unlock", "game-changer", "transformative", "robust", "seamless", "comprehensive", "thought leader"
 
 CONTENT PILLARS:
 1. Foundations before tools

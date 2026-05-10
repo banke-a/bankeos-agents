@@ -1,7 +1,13 @@
 {
   "functions": {
     "api/trend.js": {
+      "maxDuration": 60
+    },
+    "api/research.js": {
       "maxDuration": 120
+    },
+    "api/generate-content.js": {
+      "maxDuration": 30
     }
   }
 }

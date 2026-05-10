@@ -1,8 +1,25 @@
 export const config = {
-  maxDuration: 120,
+  maxDuration: 30,
 };
 
 const SITE_PASSWORD = process.env.SITE_PASSWORD;
+
+const VOICE_RULES = `VOICE:
+- Clear, concise, articulate, engaging, approachable
+- Direct without blunt. Plain language. Moves from observation to principle to implication.
+- Short paragraphs — two to four sentences each.
+- Opens with personal observation or direct reframe — never a definition.
+- Closes with a principle or quiet implication — never a hard sell or engagement question.
+- NEVER use em dashes (—), "delve", "leverage", "unlock", "game-changer", "transformative", "robust", "seamless", "comprehensive", "thought leader"
+- No excessive exclamation marks. Arguments in prose, not bullets. Never summarise at the end.
+- No hashtags.`;
+
+const FACT_RULES = `FACT ACCURACY RULES — strictly follow these:
+- Only use a statistic if it is explicitly stated in the research for that specific claim. Do not infer, extrapolate, or combine statistics from different parts of the research.
+- If a statistic is given as a general range (e.g. "cuts costs by 30% or more"), do not attribute that specific figure to a named company unless the source explicitly does so.
+- Named companies may be referenced as examples of a broader trend, but only with claims the source explicitly makes about them.
+- When uncertain about a specific claim, state the principle without the specific figure rather than risk misattribution.
+- Better to say "some operators have cut costs significantly" than "Hello Tractor cut costs by 30%" if the source does not say that directly.`;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,74 +35,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { topic, area, outputType } = req.body;
-    const perplexityKey = process.env.PERPLEXITY_API_KEY;
+    const { researchSummary, outputType } = req.body;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    const searchInput = `Research what is currently being discussed about: "${topic}"${area ? ` in the context of ${area}` : ''}.
-
-Find:
-1. Recent news, data, or developments (last 30 days where possible)
-2. What practitioners, founders, or business leaders are saying
-3. Relevant statistics, case studies, or real examples
-4. African market context if relevant
-
-Return a structured summary with the most interesting angle, key facts, and source URLs.`;
-
-    // Step 1 — Perplexity with 110s timeout and proper abort handling
-    console.time('perplexity');
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 110000);
-
-    let perplexityResponse;
-    try {
-      perplexityResponse = await fetch('https://api.perplexity.ai/v1/agent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${perplexityKey}`,
-        },
-        body: JSON.stringify({
-          preset: 'fast-search',
-          input: searchInput,
-        }),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-    console.timeEnd('perplexity');
-
-    if (!perplexityResponse.ok) {
-      const errText = await perplexityResponse.text();
-      throw new Error(`Perplexity error ${perplexityResponse.status}: ${errText.slice(0, 300)}`);
-    }
-
-    const perplexityData = await perplexityResponse.json();
-
-    // Extract research text and sources
-    let researchSummary = perplexityData.output_text || '';
-    const sources = [];
-
-    if (perplexityData.output) {
-      for (const block of perplexityData.output) {
-        if (block.type === 'message' && block.content && !researchSummary) {
-          for (const content of block.content) {
-            if (content.type === 'output_text') researchSummary += content.text;
-          }
-        }
-        if (block.results) {
-          for (const result of block.results) {
-            if (result.url && result.title) sources.push({ title: result.title, url: result.url });
-          }
-        }
-      }
-    }
-
-    if (!researchSummary) throw new Error('No research content returned. Please try again.');
-
-    // Step 2 — Claude generates content
-    console.time('claude');
     const isCard = outputType === 'card';
 
     const contentPrompt = isCard
@@ -94,18 +46,27 @@ Return a structured summary with the most interesting angle, key facts, and sour
 RESEARCH:
 ${researchSummary.slice(0, 3000)}
 
+ABOUT BANKE: AI Implementation Consultant and founder. 20 years in quantitative risk at tier-1 banks. Bi-continental Lagos and London. Consulting is global; platforms focus on African SMEs.
+
 TARGET AUDIENCE: Non-technical business owners who know they need to act but cannot build the systems themselves.
+
+${VOICE_RULES}
+
+${FACT_RULES}
 
 CARD FORMAT:
 - HERO: one to four words, punchy, sentence case with full stop. e.g. "Context matters."
-- SUPPORTING: ALL CAPS, three to five sentences, closes on a principle. No em dashes.
+- SUPPORTING: ALL CAPS, three to five sentences, closes on a principle not a call to action. Absolutely no em dashes (—).
 
-Return ONLY valid JSON:
+Find the sharpest single insight from the research that connects to this audience.
+
+Return ONLY valid JSON — no markdown, no preamble:
 {
   "hero": "Short punchy text.",
   "supporting": "SENTENCE ONE. SENTENCE TWO. SENTENCE THREE.",
   "insight": "One sentence — the core research insight",
-  "pillar": "Most relevant content pillar"
+  "pillar": "Most relevant content pillar",
+  "verify": "Specific claim in this content that should be checked against the source before publishing"
 }`
       : `Based on this research, generate a LinkedIn post for Banke Ajayi's personal brand.
 
@@ -116,19 +77,23 @@ ABOUT BANKE: AI Implementation Consultant and founder. 20 years in quantitative 
 
 TARGET AUDIENCE: Non-technical business owners who know they need to act but cannot build the systems themselves.
 
-VOICE: Clear, concise, direct. Plain language. Short paragraphs. Opens with observation or reframe. Closes with principle. NEVER use em dashes, "delve", "leverage", "unlock", "game-changer", "transformative". 150 to 250 words. No hashtags.
+${VOICE_RULES}
 
-Ground the post in the actual research — reference a specific finding. Make it current, not generic.
+${FACT_RULES}
 
-Return ONLY valid JSON:
+POST FORMAT: 150 to 250 words. Strong opening line — stops the scroll. Short paragraphs. Closes on principle. Ground the post in the actual research — reference a specific finding or statistic only if the research explicitly states it. Make it current, not generic.
+
+Return ONLY valid JSON — no markdown, no preamble:
 {
   "post": "Full post text",
   "pillar": "Most relevant content pillar",
   "opening_line": "First line only",
   "insight": "Core research finding that grounds this post",
+  "verify": "Specific claim in this content that should be checked against the source before publishing",
   "word_count": 180
 }`;
 
+    console.time('claude');
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -157,12 +122,11 @@ Return ONLY valid JSON:
 
     const clean = claudeText.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
-    parsed.sources = sources.slice(0, 3);
 
     return res.status(200).json(parsed);
 
   } catch (err) {
-    console.error('Trend agent error:', err.message);
+    console.error('Generate content error:', err.message);
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }
